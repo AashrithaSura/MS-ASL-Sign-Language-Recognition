@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hybrid RF-Fuzzy Video Sign Language Recognition</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .header p { font-size: 1.2em; opacity: 0.9; }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+        .stat-box {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid #3498db;
+        }
+        .stat-box h3 { color: #2c3e50; margin-bottom: 10px; font-size: 1.1em; }
+        .stat-box p { font-size: 1.8em; font-weight: bold; color: #3498db; }
+
+        .upload-box { padding: 40px; text-align: center; border-bottom: 1px solid #eee; }
+        .upload-area {
+            border: 3px dashed #3498db;
+            border-radius: 15px;
+            padding: 60px 40px;
+            background: #f8fafc;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .upload-area:hover { border-color: #2980b9; background: #e8f4fd; }
+        .upload-area h3 { color: #2c3e50; margin-bottom: 10px; }
+        .upload-area p { color: #7f8c8d; margin-bottom: 20px; }
+        #videoInput { display: none; }
+        .upload-btn {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white; padding: 15px 40px; border: none; border-radius: 50px;
+            font-size: 1.1em; cursor: pointer; transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(52,152,219,0.3); margin: 10px;
+        }
+        .upload-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(52,152,219,0.4); }
+        .upload-btn:disabled { background: #95a5a6; cursor: not-allowed; transform: none; box-shadow: none; }
+        .video-preview { max-width: 400px; margin: 20px auto; display: none; }
+        .video-preview video {
+            width: 100%; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .result { padding: 40px; display: none; }
+        .result-section {
+            background: white; border-radius: 15px; padding: 30px; margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1); border-left: 4px solid #27ae60;
+        }
+        .result-section h3 { color: #2c3e50; margin-bottom: 20px; font-size: 1.4em; }
+        .confidence-high { color: #27ae60; font-weight: bold; }
+        .confidence-medium { color: #f39c12; font-weight: bold; }
+        .confidence-low { color: #e74c3c; font-weight: bold; }
+        .feature-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px; margin-top: 15px;
+        }
+        .feature-item { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 10px; 
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+        .feature-item:hover { transform: translateY(-2px); }
+        .feature-value { font-size: 1.3em; font-weight: bold; color: #3498db; }
+        .feature-label { font-size: 0.9em; color: #7f8c8d; margin-top: 5px; }
+        .video-analysis { background: #e8f4fd; padding: 20px; border-radius: 10px; margin-top: 15px; }
+        .rules-section { background: #e8f4fd; padding: 40px; border-top: 1px solid #ddd; }
+        .rules-section h3 { color: #2c3e50; margin-bottom: 20px; text-align: center; }
+        .rules-content {
+            background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            max-height: 400px; overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            line-height: 1.5;
+        }
+        .loading { text-align: center; padding: 40px; display: none; }
+        .spinner {
+            border: 4px solid #f3f3f3; border-top: 4px solid #3498db;
+            border-radius: 50%; width: 50px; height: 50px;
+            animation: spin 1s linear infinite; margin: 0 auto 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .alternative-predictions {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px; margin-top: 20px;
+        }
+        .alt-prediction {
+            background: #f8f9fa; padding: 15px; border-radius: 10px; text-align: center;
+            border-left: 4px solid #95a5a6;
+            transition: transform 0.2s ease;
+        }
+        .alt-prediction:hover { transform: translateY(-2px); }
+        .rule-activation {
+            background: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 10px; 
+            margin-bottom: 10px;
+            border-left: 4px solid #3498db;
+            transition: transform 0.2s ease;
+        }
+        .rule-activation:hover { transform: translateX(5px); }
+        .rule-positive { border-left-color: #27ae60; }
+        .rule-negative { border-left-color: #e74c3c; }
+        .interpretation-summary {
+            background: linear-gradient(135deg, #e8f4fd 0%, #d1ecf1 100%);
+            padding: 20px; 
+            border-radius: 10px; 
+            margin: 15px 0;
+            border-left: 4px solid #3498db;
+            line-height: 1.6;
+        }
+        .rules-stats {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid #3498db;
+        }
+        .rule-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+        .rule-description {
+            margin-bottom: 8px;
+            font-style: italic;
+            color: #2c3e50;
+        }
+        .rule-conditions {
+            font-size: 0.9em;
+            color: #555;
+            background: white;
+            padding: 8px;
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+        .rule-impact-positive { color: #27ae60; font-weight: bold; }
+        .rule-impact-negative { color: #e74c3c; font-weight: bold; }
+        .primary-prediction-card {
+            background: linear-gradient(135deg, #e8f4fd 0%, #d1ecf1 100%);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid #3498db;
+        }
+        .prediction-item {
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .prediction-item:last-child {
+            border-bottom: none;
+        }
+        .feature-threshold {
+            font-size: 0.8em;
+            color: #7f8c8d;
+            margin-top: 2px;
+        }
+        .threshold-good { color: #27ae60; }
+        .threshold-bad { color: #e74c3c; }
+        .threshold-ok { color: #f39c12; }
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2em; }
+            .stat-box p { font-size: 1.5em; }
+            .upload-area { padding: 40px 20px; }
+            .feature-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+            .rule-header { flex-direction: column; align-items: flex-start; }
+        }
+        
+        /* Scrollbar styling */
+        .rules-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        .rules-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        .rules-content::-webkit-scrollbar-thumb {
+            background: #3498db;
+            border-radius: 4px;
+        }
+        .rules-content::-webkit-scrollbar-thumb:hover {
+            background: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎥 Video Sign Language Recognition</h1>
+            <p>Hybrid Random Forest + Fuzzy System • {{ num_classes }} Signs • Explainable AI</p>
+        </div>
+
+        <div class="stats">
+            <div class="stat-box">
+                <h3>🎯 Accuracy</h3>
+                <p>99.2%</p>
+            </div>
+            <div class="stat-box">
+                <h3>👐 Signs</h3>
+                <p>{{ num_classes }} Classes</p>
+            </div>
+            <div class="stat-box">
+                <h3>🤖 Model</h3>
+                <p>Hybrid RF+Fuzzy</p>
+            </div>
+            <div class="stat-box">
+                <h3>🔍 Explainable</h3>
+                <p>11 Fuzzy Rules</p>
+            </div>
+        </div>
+
+        <div class="upload-box">
+            <div class="upload-area" onclick="document.getElementById('videoInput').click()">
+                <div style="font-size: 3em; margin-bottom: 20px;">🎥</div>
+                <h3>Upload Sign Language Video</h3>
+                <p>Click here or drag and drop a video file</p>
+                <p style="font-size: 0.9em; color: #95a5a6;">Supported: MP4, AVI, MOV, MKV, WebM (Max 50MB)</p>
+                <input type="file" id="videoInput" accept="video/*">
+            </div>
+
+            <div class="video-preview" id="videoPreview">
+                <video controls>Your browser does not support the video tag.</video>
+            </div>
+
+            <button class="upload-btn" id="analyzeBtn" onclick="analyzeVideo()" disabled>
+                🔍 Analyze Video
+            </button>
+            <button class="upload-btn" onclick="clearVideo()" style="background:#95a5a6;">
+                🗑️ Clear Video
+            </button>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <h3>Analyzing Video with Hybrid RF-Fuzzy System...</h3>
+            <p>Extracting features and applying interpretable fuzzy rules</p>
+            <p style="color: #7f8c8d; margin-top: 10px;">Processing may take a few seconds</p>
+        </div>
+        
+        <div class="result" id="result">
+            <!-- Primary Prediction -->
+            <div class="result-section">
+                <h3>📊 Primary Prediction</h3>
+                <div class="primary-prediction-card" id="primaryResult"></div>
+            </div>
+            
+            <!-- Interpretation Summary -->
+            <div class="result-section">
+                <h3>🤔 Why This Sign Was Chosen</h3>
+                <div id="interpretationResult"></div>
+            </div>
+            
+            <!-- Fuzzy Rules Analysis -->
+            <div class="result-section">
+                <h3>⚡ Fuzzy Rules Analysis (All 11 Rules)</h3>
+                <div id="rulesActivation"></div>
+            </div>
+            
+            <!-- Feature Analysis -->
+            <div class="result-section">
+                <h3>📈 Feature Analysis</h3>
+                <div id="featureAnalysis"></div>
+            </div>
+            
+            <!-- Video Analysis -->
+            <div class="result-section">
+                <h3>🎥 Video Analysis</h3>
+                <div id="videoAnalysis"></div>
+            </div>
+            
+            <!-- Alternative Predictions -->
+            <div class="result-section">
+                <h3>🔄 Alternative Predictions</h3>
+                <div id="alternativeResults"></div>
+            </div>
+        </div>
+        
+        <!-- Fuzzy Rules Section -->
+        <div class="rules-section">
+            <h3>🎯 Complete Fuzzy Rule Set (11 Rules)</h3>
+            <div class="rules-content">
+                <pre>{{ fuzzy_rules }}</pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentVideo = null, videoUrl = null;
+
+        // Handle file selection
+        document.getElementById('videoInput').addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                currentVideo = e.target.files[0];
+                
+                // Check file size
+                if (currentVideo.size > 50 * 1024 * 1024) {
+                    alert('File too large! Please select a video under 50MB.');
+                    return;
+                }
+                
+                // Clean up previous URL
+                if (videoUrl) URL.revokeObjectURL(videoUrl);
+                
+                // Create new URL and display preview
+                videoUrl = URL.createObjectURL(currentVideo);
+                document.getElementById('videoPreview').style.display = 'block';
+                document.querySelector('#videoPreview video').src = videoUrl;
+                document.getElementById('analyzeBtn').disabled = false;
+                
+                // Show file info
+                const fileSize = (currentVideo.size / (1024 * 1024)).toFixed(2);
+                console.log(`Selected file: ${currentVideo.name} (${fileSize} MB)`);
+            }
+        });
+
+        // Handle drag and drop
+        const uploadArea = document.querySelector('.upload-area');
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#2980b9';
+            uploadArea.style.background = '#e8f4fd';
+        });
+
+        uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#3498db';
+            uploadArea.style.background = '#f8fafc';
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#3498db';
+            uploadArea.style.background = '#f8fafc';
+            
+            if (e.dataTransfer.files.length > 0) {
+                document.getElementById('videoInput').files = e.dataTransfer.files;
+                const event = new Event('change');
+                document.getElementById('videoInput').dispatchEvent(event);
+            }
+        });
+
+        function clearVideo() {
+            currentVideo = null;
+            if (videoUrl) {
+                URL.revokeObjectURL(videoUrl);
+                videoUrl = null;
+            }
+            document.getElementById('videoPreview').style.display = 'none';
+            document.getElementById('videoInput').value = '';
+            document.getElementById('analyzeBtn').disabled = true;
+            document.getElementById('result').style.display = 'none';
+        }
+
+        async function analyzeVideo() {
+            if (!currentVideo) {
+                alert('Please select a video file first!');
+                return;
+            }
+            
+            const loading = document.getElementById('loading');
+            const resultDiv = document.getElementById('result');
+            
+            // Show loading state
+            loading.style.display = 'block';
+            resultDiv.style.display = 'none';
+            document.getElementById('analyzeBtn').disabled = true;
+            
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('video', currentVideo);
+            
+            try {
+                console.log('Sending video for analysis...');
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                loading.style.display = 'none';
+                document.getElementById('analyzeBtn').disabled = false;
+                
+                if (result.error) {
+                    alert('Error: ' + result.error);
+                } else {
+                    displayResults(result);
+                    resultDiv.style.display = 'block';
+                    
+                    // Scroll to results
+                    resultDiv.scrollIntoView({ behavior: 'smooth' });
+                }
+                
+            } catch (error) {
+                loading.style.display = 'none';
+                document.getElementById('analyzeBtn').disabled = false;
+                console.error('Analysis error:', error);
+                alert('Network error: ' + error.message);
+            }
+        }
+
+        function displayResults(result) {
+            const primary = result.primary_prediction;
+            const features = result.feature_analysis || {};
+            const videoAnalysis = result.video_analysis || {};
+            const alternatives = result.alternative_predictions || [];
+            const fuzzyInterpretation = result.fuzzy_interpretation || { activated_rules: [] };
+
+            const confidenceClass = `confidence-${primary.interpretation.toLowerCase()}`;
+            
+            // Primary Prediction
+            document.getElementById('primaryResult').innerHTML = `
+                <div class="prediction-item">
+                    <strong>🎯 Recognized Sign:</strong> <span style="font-size: 1.2em; font-weight: bold; color: #2c3e50;">${primary.sign}</span>
+                </div>
+                <div class="prediction-item">
+                    <strong>🤖 Machine Learning Confidence:</strong> ${(primary.ml_confidence * 100).toFixed(1)}%
+                </div>
+                <div class="prediction-item">
+                    <strong>🔍 Fuzzy System Confidence:</strong> 
+                    <span class="${confidenceClass}">${primary.fuzzy_confidence.toFixed(3)} (${primary.interpretation})</span>
+                </div>
+            `;
+
+            // Interpretation Summary
+            document.getElementById('interpretationResult').innerHTML = `
+                <div class="interpretation-summary">
+                    <strong>💡 Decision Explanation:</strong><br><br>
+                    ${primary.interpretation_summary || primary.interpretation_text}
+                </div>
+            `;
+
+            // Activated Rules with comprehensive display
+            const totalImpact = fuzzyInterpretation.activated_rules.reduce((sum, rule) => {
+                const impactMatch = rule.impact.match(/[+-]?\d+\.?\d*/);
+                return sum + (impactMatch ? parseFloat(impactMatch[0]) : 0);
+            }, 0);
+            
+            const rulesHtml = fuzzyInterpretation.activated_rules.length > 0 ? 
+                `<div class="rules-stats">
+                    <p><strong>Rules Activated:</strong> ${fuzzyInterpretation.activated_rules.length} out of 11 total rules</p>
+                    <p><strong>Total Confidence Impact:</strong> 
+                        <span class="${totalImpact >= 0 ? 'rule-impact-positive' : 'rule-impact-negative'}">
+                            ${totalImpact > 0 ? '+' : ''}${totalImpact.toFixed(2)}
+                        </span>
+                    </p>
+                    <p><strong>Final Fuzzy Confidence:</strong> ${primary.fuzzy_confidence.toFixed(3)}</p>
+                </div>
+                <div class="rules-list">
+                    ${fuzzyInterpretation.activated_rules.map(rule => {
+                        const impactMatch = rule.impact.match(/[+-]?\d+\.?\d*/);
+                        const impactValue = impactMatch ? parseFloat(impactMatch[0]) : 0;
+                        const ruleClass = impactValue < 0 ? 'rule-negative' : 'rule-positive';
+                        const impactClass = impactValue < 0 ? 'rule-impact-negative' : 'rule-impact-positive';
+                        
+                        return `
+                            <div class="rule-activation ${ruleClass}">
+                                <div class="rule-header">
+                                    <strong>Rule ${rule.rule_id}:</strong> 
+                                    <span class="${impactClass}">${rule.impact}</span>
+                                </div>
+                                <div class="rule-description">${rule.description}</div>
+                                <div class="rule-conditions">
+                                    <strong>Conditions Met:</strong><br>
+                                    ${rule.conditions_met.filter(c => c).join('<br>')}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>` : 
+                '<div class="interpretation-summary">No specific fuzzy rules activated. Using default confidence based on basic feature analysis.</div>';
+            
+            document.getElementById('rulesActivation').innerHTML = rulesHtml;
+
+            // Video Analysis
+            document.getElementById('videoAnalysis').innerHTML = `
+                <div class="feature-grid">
+                    <div class="feature-item">
+                        <div>📹 Frames Processed</div>
+                        <div class="feature-value">${videoAnalysis.frames_processed || 0}</div>
+                        <div class="feature-label">out of 30 maximum</div>
+                    </div>
+                    <div class="feature-item">
+                        <div>👐 Hand Detection Rate</div>
+                        <div class="feature-value">${videoAnalysis.hand_detection_rate || '0%'}</div>
+                        <div class="feature-label">successful detection</div>
+                    </div>
+                    <div class="feature-item">
+                        <div>⏱️ Estimated Duration</div>
+                        <div class="feature-value">${videoAnalysis.estimated_duration || '0s'}</div>
+                        <div class="feature-label">based on frame count</div>
+                    </div>
+                    <div class="feature-item">
+                        <div>🔍 Features Extracted</div>
+                        <div class="feature-value">${videoAnalysis.features_extracted || 0}</div>
+                        <div class="feature-label">41 total features</div>
+                    </div>
+                </div>`;
+
+            // Feature Analysis with threshold indicators
+            const motion = features.motion_magnitude || 0;
+            const handSize = features.hand_size || 0;
+            const thumbDist = features.thumb_index_distance || 0;
+            const temporal = features.temporal_consistency || 0;
+            const duration = features.gesture_duration || 0;
+
+            function getThresholdClass(value, thresholds) {
+                if (value < thresholds.low) return 'threshold-bad';
+                if (value > thresholds.high) return 'threshold-bad';
+                return 'threshold-good';
+            }
+
+            document.getElementById('featureAnalysis').innerHTML = `
+                <div class="feature-grid">
+                    <div class="feature-item">
+                        <div>🔄 Motion Magnitude</div>
+                        <div class="feature-value">${motion.toFixed(4)}</div>
+                        <div class="feature-label ${getThresholdClass(motion, {low: 0.03, high: 0.15})}">
+                            ${motion < 0.03 ? 'Low (< 0.03)' : motion > 0.15 ? 'High (> 0.15)' : 'Optimal (0.03-0.15)'}
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div>👐 Hand Size</div>
+                        <div class="feature-value">${handSize.toFixed(4)}</div>
+                        <div class="feature-label ${getThresholdClass(handSize, {low: 0.08, high: 0.16})}">
+                            ${handSize < 0.08 ? 'Small (< 0.08)' : handSize > 0.16 ? 'Large (> 0.16)' : 'Medium (0.08-0.16)'}
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div>📏 Thumb-Index Distance</div>
+                        <div class="feature-value">${thumbDist.toFixed(4)}</div>
+                        <div class="feature-label ${getThresholdClass(thumbDist, {low: 0.03, high: 0.09})}">
+                            ${thumbDist < 0.03 ? 'Close (< 0.03)' : thumbDist > 0.09 ? 'Far (> 0.09)' : 'Medium (0.03-0.09)'}
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div>⏱️ Temporal Consistency</div>
+                        <div class="feature-value">${temporal.toFixed(2)}</div>
+                        <div class="feature-label ${getThresholdClass(temporal, {low: 0.8, high: 1.6})}">
+                            ${temporal < 0.8 ? 'Low (< 0.8)' : temporal > 1.6 ? 'High (> 1.6)' : 'Medium (0.8-1.6)'}
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div>⏱️ Gesture Duration</div>
+                        <div class="feature-value">${duration.toFixed(1)}s</div>
+                        <div class="feature-label ${getThresholdClass(duration, {low: 3, high: 11})}">
+                            ${duration < 3 ? 'Short (< 3s)' : duration > 11 ? 'Long (> 11s)' : 'Normal (3-11s)'}
+                        </div>
+                    </div>
+                </div>`;
+
+            // Alternative Predictions
+            if (alternatives.length > 0) {
+                document.getElementById('alternativeResults').innerHTML = `
+                    <p style="margin-bottom: 15px; color: #7f8c8d;">Other possible signs based on feature similarity:</p>
+                    <div class="alternative-predictions">
+                        ${alternatives.map(alt => `
+                            <div class="alt-prediction">
+                                <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 8px;">${alt.sign}</div>
+                                <div style="font-size: 1.2em; color: #3498db; font-weight: bold;">
+                                    ${(alt.confidence * 100).toFixed(1)}%
+                                </div>
+                                <div style="font-size: 0.8em; color: #7f8c8d; margin-top: 5px;">
+                                    confidence
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>`;
+            } else {
+                document.getElementById('alternativeResults').innerHTML = 
+                    '<div class="interpretation-summary">No strong alternative predictions detected. The primary prediction is highly confident.</div>';
+            }
+        }
+
+        // Add some interactive features
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add click effect to buttons
+            const buttons = document.querySelectorAll('.upload-btn');
+            buttons.forEach(button => {
+                button.addEventListener('click', function() {
+                    this.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        this.style.transform = '';
+                    }, 150);
+                });
+            });
+            
+            // Add keyboard shortcut (Space for upload, Enter for analyze)
+            document.addEventListener('keydown', function(e) {
+                if (e.code === 'Space' && e.target === document.body) {
+                    e.preventDefault();
+                    document.getElementById('videoInput').click();
+                }
+                if (e.code === 'Enter' && currentVideo && !document.getElementById('analyzeBtn').disabled) {
+                    analyzeVideo();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

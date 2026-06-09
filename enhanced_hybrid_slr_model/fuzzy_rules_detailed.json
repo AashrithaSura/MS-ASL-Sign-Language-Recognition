@@ -1,0 +1,196 @@
+{
+  "system_info": {
+    "name": "Sign Language Recognition Fuzzy System",
+    "input_variables": 5,
+    "output_variables": 1,
+    "total_rules": 11,
+    "membership_functions": "Triangular",
+    "defuzzification_method": "Centroid"
+  },
+  "input_variables": {
+    "motion_magnitude": {
+      "range": [
+        0,
+        0.2
+      ],
+      "terms": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "description": "Magnitude of hand motion during gesture"
+    },
+    "hand_size": {
+      "range": [
+        0,
+        0.3
+      ],
+      "terms": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "description": "Size of hand bounding area"
+    },
+    "thumb_index_distance": {
+      "range": [
+        0,
+        0.15
+      ],
+      "terms": [
+        "close",
+        "medium",
+        "far"
+      ],
+      "description": "Distance between thumb and index finger"
+    },
+    "temporal_consistency": {
+      "range": [
+        0,
+        2.0
+      ],
+      "terms": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "description": "Consistency of gesture over time"
+    },
+    "gesture_duration": {
+      "range": [
+        0,
+        15
+      ],
+      "terms": [
+        "short",
+        "normal",
+        "long"
+      ],
+      "description": "Duration of gesture in seconds"
+    }
+  },
+  "output_variable": {
+    "fuzzy_confidence": {
+      "range": [
+        0,
+        1.0
+      ],
+      "terms": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "description": "Confidence level of gesture recognition"
+    }
+  },
+  "rules": [
+    {
+      "rule_id": 1,
+      "description": "IF motion_magnitude IS high AND gesture_duration IS normal THEN fuzzy_confidence IS high",
+      "conditions": [
+        "IF motion_magnitude IS high",
+        "gesture_duration IS normal THEN fuzzy_confidence IS high"
+      ],
+      "conclusion": "fuzzy_confidence",
+      "weight": 1.0
+    },
+    {
+      "rule_id": 2,
+      "description": "IF hand_size IS small AND thumb_index_distance IS close THEN fuzzy_confidence IS high",
+      "conditions": [
+        "IF hand_size IS small",
+        "thumb_index_distance IS close THEN fuzzy_confidence IS high"
+      ],
+      "conclusion": "fuzzy_confidence",
+      "weight": 1.0
+    },
+    {
+      "rule_id": 3,
+      "description": "IF temporal_consistency IS high THEN fuzzy_confidence IS high",
+      "conditions": [
+        "IF temporal_consistency IS high"
+      ],
+      "conclusion": "fuzzy_confidence",
+      "weight": 1.0
+    },
+    {
+      "rule_id": 4,
+      "description": "IF motion_magnitude IS medium AND temporal_consistency IS medium THEN fuzzy_confidence IS medium",
+      "conditions": [
+        "IF motion_magnitude IS medium",
+        "temporal_consistency IS medium THEN fuzzy_confidence IS medium"
+      ],
+      "conclusion": "fuzzy_confidence",
+      "weight": 1.0
+    },
+    {
+      "rule_id": 5,
+      "description": "IF hand_size IS medium AND thumb_index_distance IS medium THEN fuzzy_confidence IS medium",
+      "conditions": [
+        "IF hand_size IS medium",
+        "thumb_index_distance IS medium THEN fuzzy_confidence IS medium"
+      ],
+      "conclusion": "fuzzy_confidence",
+      "weight": 1.0
+    },
+    {
+      "rule_id": 6,
+      "description": "IF gesture_duration IS normal AND temporal_consistency IS medium THEN fuzzy_confidence IS medium",
+      "conditions": [
+        "IF gesture_duration IS normal",
+        "temporal_consistency IS medium THEN fuzzy_confidence IS medium"
+      ],
+      "conclusion": "fuzzy_confidence",
+      "weight": 1.0
+    },
+    {
+      "rule_id": 7,
+      "description": "IF motion_magnitude IS low AND gesture_duration IS short THEN fuzzy_confidence IS low",
+      "conditions": [
+        "IF motion_magnitude IS low",
+        "gesture_duration IS short THEN fuzzy_confidence IS low"
+      ],
+      "conclusion": "fuzzy_confidence",
+      "weight": 1.0
+    },
+    {
+      "rule_id": 8,
+      "description": "IF temporal_consistency IS low THEN fuzzy_confidence IS low",
+      "conditions": [
+        "IF temporal_consistency IS low"
+      ],
+      "conclusion": "fuzzy_confidence",
+      "weight": 1.0
+    },
+    {
+      "rule_id": 9,
+      "description": "IF thumb_index_distance IS far AND hand_size IS large THEN fuzzy_confidence IS low",
+      "conditions": [
+        "IF thumb_index_distance IS far",
+        "hand_size IS large THEN fuzzy_confidence IS low"
+      ],
+      "conclusion": "fuzzy_confidence",
+      "weight": 1.0
+    },
+    {
+      "rule_id": 10,
+      "description": "IF motion_magnitude IS high AND temporal_consistency IS low THEN fuzzy_confidence IS medium",
+      "conditions": [
+        "IF motion_magnitude IS high",
+        "temporal_consistency IS low THEN fuzzy_confidence IS medium"
+      ],
+      "conclusion": "fuzzy_confidence",
+      "weight": 1.0
+    },
+    {
+      "rule_id": 11,
+      "description": "IF hand_size IS small AND gesture_duration IS short THEN fuzzy_confidence IS medium",
+      "conditions": [
+        "IF hand_size IS small",
+        "gesture_duration IS short THEN fuzzy_confidence IS medium"
+      ],
+      "conclusion": "fuzzy_confidence",
+      "weight": 1.0
+    }
+  ]
+}
